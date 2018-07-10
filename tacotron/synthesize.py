@@ -92,14 +92,48 @@ def run_synthesis(args, checkpoint_path, output_dir, hparams):
     log('starting synthesis')
     mel_dir = os.path.join(args.input_dir, 'mels')
     wav_dir = os.path.join(args.input_dir, 'audio')
-    with open(os.path.join(synth_dir, 'map.txt'), 'w') as file:
-        for i, meta in enumerate(tqdm(metadata)):
-            text = meta[5]
-            mel_filename = os.path.join(mel_dir, meta[1])
-            wav_filename = os.path.join(wav_dir, meta[0])
-            mel_output_filename = synth.synthesize(text, i + 1, synth_dir, None, mel_filename)
 
-            file.write(u'{}|{}|{}|{}\n'.format(wav_filename, mel_filename, mel_output_filename, text))
+    with open(os.path.join(synth_dir, 'map.txt'), 'w') as file:
+        # for i, meta in enumerate(tqdm(metadata)):
+        #     text = meta[5]
+        #     mel_filename = os.path.join(mel_dir, meta[1])
+        #     wav_filename = os.path.join(wav_dir, meta[0])
+        #     mel_output_filename = synth.synthesize(text, i + 1, synth_dir, None, mel_filename)
+        #
+        #     file.write(u'{}|{}|{}|{}\n'.format(wav_filename, mel_filename, mel_output_filename, text))
+
+        from threading import Thread
+        from queue import Queue
+        from multiprocessing import Lock
+
+        q = Queue()
+        lock = Lock()
+        pbar = tqdm(total=len(metadata))
+
+        def map_kernel():
+            while True:
+                i, meta = q.get()
+                text = meta[5]
+                mel_filename = os.path.join(mel_dir, meta[1])
+                wav_filename = os.path.join(wav_dir, meta[0])
+                mel_output_filename = synth.synthesize(text, i + 1, synth_dir, None, mel_filename)
+                lock.acquire()
+                file.write(u'{}|{}|{}|{}\n'.format(wav_filename, mel_filename, mel_output_filename, text.encode("utf-8")))
+                lock.release()
+                q.task_done()
+                pbar.update()
+
+        # 8 个消费者
+        for k in range(8):
+            t = Thread(target=map_kernel)
+            t.daemon = True
+            t.start()
+
+        for i, meta in enumerate(metadata):
+            qi = (i, meta)
+            q.put(qi)
+        q.join()
+
     log('synthesized mel spectrograms at {}'.format(synth_dir))
     return os.path.join(synth_dir, 'map.txt')
 
