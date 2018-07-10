@@ -124,7 +124,10 @@ def run_synthesis(args, checkpoint_path, output_dir, hparams):
                 pbar.update()
 
         # 8 个消费者
-        for k in range(8):
+        from multiprocessing import cpu_count
+        cores = cpu_count()
+        log('found {} cpu cores and use them all'.format(cores))
+        for k in range(cores):
             t = Thread(target=map_kernel)
             t.daemon = True
             t.start()
