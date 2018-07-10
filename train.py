@@ -59,8 +59,7 @@ def train(args, log_dir, hparams):
             raise ('Error occured while training Tacotron, Exiting!')
         taco_state = 1
         save_seq(state_file, [taco_state, GTA_state, wave_state], input_path)
-
-    if checkpoint is None:
+    else:
         checkpoint = os.path.join(log_dir, 'taco_pretrained/')
 
     if not GTA_state:
