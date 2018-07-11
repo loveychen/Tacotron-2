@@ -82,10 +82,10 @@ class Feeder:
             ]
 
             # Create queue for buffering data
-            queue = tf.FIFOQueue(8, [tf.int32, tf.int32, tf.float32, tf.float32, tf.float32, tf.int32],
+            self.queue = tf.FIFOQueue(8, [tf.int32, tf.int32, tf.float32, tf.float32, tf.float32, tf.int32],
                                  name='input_queue')
-            self._enqueue_op = queue.enqueue(self._placeholders)
-            self.inputs, self.input_lengths, self.mel_targets, self.token_targets, self.linear_targets, self.targets_lengths = queue.dequeue()
+            self._enqueue_op = self.queue.enqueue(self._placeholders)
+            self.inputs, self.input_lengths, self.mel_targets, self.token_targets, self.linear_targets, self.targets_lengths = self.queue.dequeue()
 
             self.inputs.set_shape(self._placeholders[0].shape)
             self.input_lengths.set_shape(self._placeholders[1].shape)
@@ -95,11 +95,11 @@ class Feeder:
             self.targets_lengths.set_shape(self._placeholders[5].shape)
 
             # Create eval queue for buffering eval data
-            eval_queue = tf.FIFOQueue(1, [tf.int32, tf.int32, tf.float32, tf.float32, tf.float32, tf.int32],
+            self.eval_queue = tf.FIFOQueue(1, [tf.int32, tf.int32, tf.float32, tf.float32, tf.float32, tf.int32],
                                       name='eval_queue')
-            self._eval_enqueue_op = eval_queue.enqueue(self._placeholders)
+            self._eval_enqueue_op = self.eval_queue.enqueue(self._placeholders)
             self.eval_inputs, self.eval_input_lengths, self.eval_mel_targets, self.eval_token_targets, \
-            self.eval_linear_targets, self.eval_targets_lengths = eval_queue.dequeue()
+            self.eval_linear_targets, self.eval_targets_lengths = self.eval_queue.dequeue()
 
             self.eval_inputs.set_shape(self._placeholders[0].shape)
             self.eval_input_lengths.set_shape(self._placeholders[1].shape)

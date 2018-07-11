@@ -321,6 +321,8 @@ def train(log_dir, args, hparams):
 
             # stop feeding threads
             coord.request_stop()
+            sess.run(feeder.queue.close(cancel_pending_enqueues=True))
+            sess.run(feeder.eval_queue.close(cancel_pending_enqueues=True))
             coord.join(threads)
 
             return save_dir
